@@ -220,8 +220,10 @@ target_link_libraries(common PRIVATE
         ${LIBC_LIBRARIES}
         JPEG::JPEG
         PNG::PNG
-        WebP::libwebp
 )
+
+find_library(WEBP_LIB webp REQUIRED)
+target_link_libraries(common PRIVATE ${WEBP_LIB})
 
 if(ANDROID)
 	find_library(log-lib log)

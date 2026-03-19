@@ -783,8 +783,6 @@ if(DISABLE_ADVANCE_SIMD)
 		target_compile_options(GS-${isa} PRIVATE ${compile_options_${isa}})
 		if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 			target_link_libraries(PCSX2 PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,GS-${isa}>)
-		elseif(APPLE)
-			message(FATAL_ERROR "MacOS builds with DISABLE_ADVANCE_SIMD=ON require CMake 3.24")
 		else()
 			target_link_libraries(PCSX2 PRIVATE GS-${isa})
 		endif()
@@ -867,22 +865,6 @@ set(pcsx2InputHeaders
 	Input/InputSource.h
 	Input/SDLInputSource.h
 )
-
-if(APPLE)
-	list(APPEND pcsx2GSSources
-		GS/Renderers/Metal/GSDeviceMTL.mm
-		GS/Renderers/Metal/GSMTLDeviceInfo.mm
-		GS/Renderers/Metal/GSTextureMTL.mm
-	)
-	list(APPEND pcsx2GSHeaders
-		GS/Renderers/Metal/GSDeviceMTL.h
-		GS/Renderers/Metal/GSMetalCPPAccessible.h
-		GS/Renderers/Metal/GSMTLDeviceInfo.h
-		GS/Renderers/Metal/GSMTLSharedHeader.h
-		GS/Renderers/Metal/GSMTLShaderCommon.h
-		GS/Renderers/Metal/GSTextureMTL.h
-	)
-endif()
 
 if(WIN32)
 	# RAIntegration is only supported on Windows.
@@ -1144,14 +1126,9 @@ endif()
 
 target_sources(PCSX2 PRIVATE ${pcsx2USBSources} ${pcsx2USBHeaders})
 
-if(APPLE OR BSD)
-	if(APPLE)
-		target_sources(PCSX2 PRIVATE
-			${pcsx2OSXSources})
-	else()
+if(BSD)
 		target_sources(PCSX2 PRIVATE
 			${pcsx2FreeBSDSources})
-	endif()
 	target_sources(PCSX2 PRIVATE
 		${pcsx2LinuxHeaders})
 endif()
@@ -1254,24 +1231,15 @@ set_source_files_properties(PrecompiledHeader.cpp PROPERTIES HEADER_FILE_ONLY TR
 function(pcsx2_resource target path basedir)
 	get_filename_component(dir ${path} DIRECTORY)
 	file(RELATIVE_PATH subdir ${basedir} ${dir})
-	if(APPLE)
-		target_sources(${target} PRIVATE ${path})
-		set_source_files_properties(${path} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/${subdir})
-	else()
 		add_custom_command(TARGET ${target} POST_BUILD
 			COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:${target}>/resources/${subdir}"
 			COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${path}" "$<TARGET_FILE_DIR:${target}>/resources/${subdir}")
-	endif()
 	source_group(Resources/${subdir} FILES ${path})
 endfunction()
 
-if (NOT APPLE)
-	if (NOT ANDROID)
 		set_target_properties(PCSX2 PROPERTIES
 			OUTPUT_NAME pcsx2
 		)
-	endif()
-endif()
 
 fixup_file_properties(PCSX2)
 # Directories like /usr/local/include, /opt/local/include, etc tend to include lots of headers from lots of libraries.
@@ -1279,19 +1247,6 @@ fixup_file_properties(PCSX2)
 # To ensure the dependency build script's headers are preferred, push any directories that look like */local/include to the end.
 if (NOT ANDROID)
 force_include_last(PCSX2_FLAGS "/(usr|local)/include/?$")
-endif()
-
-if (APPLE)
-	find_library(APPKIT_LIBRARY AppKit)
-	find_library(IOKIT_LIBRARY IOKit)
-	find_library(METAL_LIBRARY Metal)
-	find_library(QUARTZCORE_LIBRARY QuartzCore)
-	target_link_libraries(PCSX2_FLAGS INTERFACE
-		${APPKIT_LIBRARY}
-		${IOKIT_LIBRARY}
-		${METAL_LIBRARY}
-		${QUARTZCORE_LIBRARY}
-	)
 endif()
 
 set_property(GLOBAL PROPERTY PCSX2_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -1353,7 +1308,7 @@ function(setup_main_executable target)
 	endif()
 
 
-	if (UNIX AND NOT APPLE)
+	if (UNIX)
 		if (PACKAGE_MODE)
 			install(TARGETS pcsx2-qt DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 			install(DIRECTORY ${CMAKE_SOURCE_DIR}/bin/resources DESTINATION ${CMAKE_INSTALL_FULL_DATADIR}/PCSX2)
@@ -1363,91 +1318,7 @@ function(setup_main_executable target)
 		endif()
 	endif()
 
-	if(APPLE)
-		if(CMAKE_GENERATOR MATCHES "Xcode")
-			# If we're generating an xcode project, you can just add the shaders to the main pcsx2 target and xcode will deal with them properly
-			# This will make sure xcode supplies code completion, etc (if you use a custom command, it won't)
-			set_target_properties(${target} PROPERTIES
-				XCODE_ATTRIBUTE_MTL_ENABLE_DEBUG_INFO INCLUDE_SOURCE
-			)
-			foreach(shader IN LISTS PCSX2_METAL_SHADERS)
-				target_sources(${target} PRIVATE ${PCSX2_SOURCE_DIR}/${shader})
-				set_source_files_properties(${PCSX2_SOURCE_DIR}/${shader} PROPERTIES LANGUAGE METAL)
-			endforeach()
-		else()
-			function(generateMetallib std triple outputName)
-				set(pcsx2GSMetalShaderOut)
-				set(flags
-					-ffast-math
-					$<$<NOT:$<CONFIG:Release,MinSizeRel>>:-gline-tables-only>
-					$<$<NOT:$<CONFIG:Release,MinSizeRel>>:-MO>
-				)
-				foreach(shader IN LISTS PCSX2_METAL_SHADERS)
-					set(shaderOut ${CMAKE_CURRENT_BINARY_DIR}/${outputName}/${shader}.air)
-					list(APPEND pcsx2GSMetalShaderOut ${shaderOut})
-					get_filename_component(shaderDir ${shaderOut} DIRECTORY)
-					add_custom_command(OUTPUT ${shaderOut}
-						COMMAND ${CMAKE_COMMAND} -E make_directory ${shaderDir}
-						COMMAND xcrun metal ${flags} -std=${std} -target ${triple} -o ${shaderOut} -c ${PCSX2_SOURCE_DIR}/${shader}
-						DEPENDS ${PCSX2_SOURCE_DIR}/${shader} ${PCSX2_SOURCE_DIR}/GS/Renderers/Metal/GSMTLSharedHeader.h ${PCSX2_SOURCE_DIR}/GS/Renderers/Metal/GSMTLShaderCommon.h
-					)
-					set(metallib ${CMAKE_CURRENT_BINARY_DIR}/${outputName}.metallib)
-				endforeach()
-				add_custom_command(OUTPUT ${metallib}
-					COMMAND xcrun metallib -o ${metallib} ${pcsx2GSMetalShaderOut}
-					DEPENDS ${pcsx2GSMetalShaderOut}
-				)
-				pcsx2_resource(${target} ${metallib} ${CMAKE_CURRENT_BINARY_DIR})
-			endfunction()
-			generateMetallib(macos-metal2.0 air64-apple-macos10.13 default)
-			generateMetallib(macos-metal2.2 air64-apple-macos10.15 Metal22)
-			generateMetallib(macos-metal2.3 air64-apple-macos11.0  Metal23)
-		endif()
-
-		set_target_properties(${target} PROPERTIES
-			MACOSX_BUNDLE true
-			MACOSX_BUNDLE_INFO_PLIST "${PCSX2_SOURCE_DIR}/Resources/Info.plist.in"
-			XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${PCSX2_SOURCE_DIR}/Resources/PCSX2.entitlements"
-			OUTPUT_NAME PCSX2
-			# Fixes complaints when Xcode tries to sign for running locally about MoltenVK not being signed
-			XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS --deep
-		)
-
-		pcsx2_resource(${target} ${PCSX2_SOURCE_DIR}/Resources/PCSX2.icns ${PCSX2_SOURCE_DIR}/Resources)
-
-		# Copy shaderc into the bundle
-		target_sources(${target} PRIVATE "${SHADERC_LIBRARY}")
-		set_source_files_properties("${SHADERC_LIBRARY}" PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks)
-
-		# Copy MoltenVK into the bundle
-		unset(MOLTENVK_PATH CACHE)
-		find_file(MOLTENVK_PATH NAMES
-			libMoltenVK.dylib
-			lib/libMoltenVK.dylib
-		)
-		if (MOLTENVK_PATH)
-			target_sources(${target} PRIVATE "${MOLTENVK_PATH}")
-			set_source_files_properties("${MOLTENVK_PATH}" PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks)
-			message(STATUS "Using MoltenVK from ${MOLTENVK_PATH}")
-		else()
-			message(WARNING "MoltenVK not found in path, it will depend on the target system having it.")
-		endif()
-
-		# If they say to skip postprocess bundle, leave the target in but make it so they have
-		# to manually run it
-		if (SKIP_POSTPROCESS_BUNDLE)
-			set(postprocessBundleType "")
-		else()
-			set(postprocessBundleType ALL)
-		endif()
-
-		add_custom_target(pcsx2-postprocess-bundle ${postprocessBundleType}
-			COMMAND Qt6::macdeployqt "$<TARGET_FILE_DIR:${target}>/../.." -no-strip
-		)
-		add_dependencies(pcsx2-postprocess-bundle ${target})
-	endif()
-
-	if(ENABLE_SETCAP AND UNIX AND NOT APPLE)
+	if(ENABLE_SETCAP AND UNIX)
 		message(WARNING "Networking capabilities enabled, building will require temporary root elevation.")
 		add_custom_target(
 			pcsx2-enable-setcap

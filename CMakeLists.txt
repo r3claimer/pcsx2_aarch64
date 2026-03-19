@@ -21,7 +21,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 # Write binaries to the bin directory under the build directory.
 # This makes it simple to run development builds directly out of the build directory.
-if (UNIX AND NOT APPLE)
+if (UNIX)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 endif()
@@ -78,18 +78,3 @@ PCSX2 only supports the Clang and MSVC compilers.
 No support will be provided, continue at your own risk.
 *********************************************************")
 endif()
-
-#if(_M_ARM64)
-#	message(WARNING "
-#*************** UNSUPPORTED CONFIGURATION ***************
-#
-#Apple Silicon support in PCSX2 is INCOMPLETE. There are
-#currently no EE/VU/IOP recompilers, and games will run
-#VERY slow. There is no date for completion yet, you
-#should set -DCMAKE_OSX_ARCHITECTURES=x86_64 for now,
-#unless you want to work on the recompilers.
-#
-#We also ask that you read https://dont-ship.it/.
-#
-#*********************************************************")
-#endif()

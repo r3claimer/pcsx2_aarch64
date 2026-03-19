@@ -23,8 +23,8 @@ option(USE_VULKAN "Enable Vulkan GS renderer" ON)
 #-------------------------------------------------------------------------------
 if(UNIX)
 	option(ENABLE_SETCAP "Enable networking capability for DEV9" OFF)
-	option(X11_API "Enable X11 support" OFF)
-	option(WAYLAND_API "Enable Wayland support" OFF)
+	option(X11_API "Enable X11 support" ON)
+	option(WAYLAND_API "Enable Wayland support" ON)
 	option(USE_BACKTRACE "Enable libbacktrace support" OFF)
 endif()
 

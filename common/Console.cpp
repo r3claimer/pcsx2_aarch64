@@ -18,6 +18,10 @@
 #include <unistd.h>
 #endif
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 using namespace std::string_view_literals;
 
 // Dummy objects, need to get rid of them...
@@ -72,6 +76,9 @@ float Log::GetCurrentMessageTime()
 
 __ri void Log::WriteToConsole(LOGLEVEL level, ConsoleColors color, std::string_view message)
 {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_DEBUG, "NDK_LOG", "%s", std::string(message).c_str());
+#else
 	static constexpr std::string_view s_ansi_color_codes[ConsoleColors_Count] = {
 		"\033[0m"sv, // default
 		"\033[30m\033[1m"sv, // black
@@ -136,6 +143,8 @@ cleanup:
 #else
 	const int fd = (level <= LOGLEVEL_WARNING) ? STDERR_FILENO : STDOUT_FILENO;
 	write(fd, buffer.data(), buffer.length());
+#endif
+
 #endif
 }
 
@@ -410,6 +419,9 @@ void Log::ExecuteCallbacks(LOGLEVEL level, ConsoleColors color, std::string_view
 {
 	// TODO: Cache the message time.
 
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_DEBUG, "NDK_LOG", "%s", std::string(message).c_str());
+#else
 	// Split newlines into separate messages.
 	std::string_view::size_type start_pos = 0;
 	if (std::string_view::size_type end_pos = message.find('\n'); end_pos != std::string::npos) [[unlikely]]
@@ -448,6 +460,7 @@ void Log::ExecuteCallbacks(LOGLEVEL level, ConsoleColors color, std::string_view
 		if (callback)
 			s_host_callback(level, color, message);
 	}
+#endif
 }
 
 void Log::Write(LOGLEVEL level, ConsoleColors color, std::string_view message)

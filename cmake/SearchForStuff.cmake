@@ -11,20 +11,20 @@ find_package(Threads REQUIRED)
 # Avoid it by telling cmake to avoid finding frameworks while we search for libpng.
 set(FIND_FRAMEWORK_BACKUP ${CMAKE_FIND_FRAMEWORK})
 set(CMAKE_FIND_FRAMEWORK NEVER)
-find_package(PNG 1.6.40 REQUIRED)
-find_package(JPEG REQUIRED) # No version because flatpak uses libjpeg-turbo.
-find_package(ZLIB REQUIRED) # v1.3, but Mac uses the SDK version.
-find_package(Zstd 1.5.5 REQUIRED)
-find_package(LZ4 REQUIRED)
-find_package(WebP REQUIRED) # v1.3.2, spews an error on Linux because no pkg-config.
-find_package(SDL3 3.2.6 REQUIRED)
-find_package(Freetype 2.11.1 REQUIRED)
-find_package(plutovg REQUIRED) # v0.0.13 is needed for building plutosvg, but we can support v1.0.0
-find_package(plutosvg 0.0.6 REQUIRED)
+#find_package(PNG 1.6.40 REQUIRED)
+#find_package(JPEG REQUIRED) # No version because flatpak uses libjpeg-turbo.
+#find_package(ZLIB REQUIRED) # v1.3, but Mac uses the SDK version.
+#find_package(Zstd 1.5.5 REQUIRED)
+#find_package(LZ4 REQUIRED)
+#find_package(WebP REQUIRED) # v1.3.2, spews an error on Linux because no pkg-config.
+#find_package(SDL3 3.2.6 REQUIRED)
+#find_package(Freetype 2.11.1 REQUIRED)
+#find_package(plutovg REQUIRED) # v0.0.13 is needed for building plutosvg, but we can support v1.0.0
+#find_package(plutosvg 0.0.6 REQUIRED)
 
-if(USE_VULKAN)
-	find_package(Shaderc REQUIRED)
-endif()
+#if(USE_VULKAN)
+#	find_package(Shaderc REQUIRED)
+#endif()
 
 # Platform-specific dependencies.
 if (WIN32)
@@ -33,6 +33,20 @@ if (WIN32)
 	add_subdirectory(3rdparty/winwil EXCLUDE_FROM_ALL)
 	set(FFMPEG_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/3rdparty/ffmpeg/include")
 	find_package(Vtune)
+elseif (ANDROID)
+	add_subdirectory(3rdparty/zlib EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/zstd EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/lz4 EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/libwebp EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/SDL3 EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/harfbuzz EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/freetype EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/oboe EXCLUDE_FROM_ALL)
+	add_subdirectory(3rdparty/plutosvg1 EXCLUDE_FROM_ALL)
+	find_package(EGL REQUIRED)
+#	include(CheckLib)
+#	check_lib(EGL EGL EGL/egl.h)
+	set(CUBEB_API ON)
 else()
 	find_package(CURL REQUIRED)
 	find_package(PCAP REQUIRED)
@@ -107,7 +121,7 @@ disable_compiler_warnings_for_target(cubeb)
 disable_compiler_warnings_for_target(speex)
 
 # Find the Qt components that we need.
-find_package(Qt6 6.7.3 COMPONENTS CoreTools Core GuiTools Gui WidgetsTools Widgets LinguistTools REQUIRED)
+#find_package(Qt6 6.7.3 COMPONENTS CoreTools Core GuiTools Gui WidgetsTools Widgets LinguistTools REQUIRED)
 
 if(WIN32)
   add_subdirectory(3rdparty/rainterface EXCLUDE_FROM_ALL)
@@ -119,19 +133,20 @@ add_subdirectory(3rdparty/demangler EXCLUDE_FROM_ALL)
 # Symbol table parser.
 add_subdirectory(3rdparty/ccc EXCLUDE_FROM_ALL)
 
-# The docking system for the debugger.
-find_package(KDDockWidgets-qt6 2.0.0 REQUIRED)
-# Add an extra include path to work around a broken include directive.
-# TODO: Remove this the next time we update KDDockWidgets.
-get_target_property(KDDOCKWIDGETS_INCLUDE_DIRECTORY KDAB::kddockwidgets INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(KDAB::kddockwidgets INTERFACE
-	${KDDOCKWIDGETS_INCLUDE_DIRECTORY}/kddockwidgets
-)
+## The docking system for the debugger.
+#find_package(KDDockWidgets-qt6 2.0.0 REQUIRED)
+## Add an extra include path to work around a broken include directive.
+## TODO: Remove this the next time we update KDDockWidgets.
+#get_target_property(KDDOCKWIDGETS_INCLUDE_DIRECTORY KDAB::kddockwidgets INTERFACE_INCLUDE_DIRECTORIES)
+#target_include_directories(KDAB::kddockwidgets INTERFACE
+#	${KDDOCKWIDGETS_INCLUDE_DIRECTORY}/kddockwidgets
+#)
 
 # Architecture-specific.
 if(_M_X86)
 	add_subdirectory(3rdparty/zydis EXCLUDE_FROM_ALL)
 elseif(_M_ARM64)
+	add_subdirectory(3rdparty/glslang EXCLUDE_FROM_ALL)
 	add_subdirectory(3rdparty/vixl EXCLUDE_FROM_ALL)
 endif()
 

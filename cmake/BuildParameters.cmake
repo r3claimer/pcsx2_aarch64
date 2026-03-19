@@ -25,9 +25,9 @@ option(USE_VULKAN "Enable Vulkan GS renderer" ON)
 #-------------------------------------------------------------------------------
 if(UNIX AND NOT APPLE)
 	option(ENABLE_SETCAP "Enable networking capability for DEV9" OFF)
-	option(X11_API "Enable X11 support" ON)
-	option(WAYLAND_API "Enable Wayland support" ON)
-	option(USE_BACKTRACE "Enable libbacktrace support" ON)
+	option(X11_API "Enable X11 support" OFF)
+	option(WAYLAND_API "Enable Wayland support" OFF)
+	option(USE_BACKTRACE "Enable libbacktrace support" OFF)
 endif()
 
 if(UNIX)
@@ -72,6 +72,10 @@ if(CMAKE_CONFIGURATION_TYPES)
 endif()
 mark_as_advanced(CMAKE_C_FLAGS_DEVEL CMAKE_CXX_FLAGS_DEVEL CMAKE_LINKER_FLAGS_DEVEL CMAKE_SHARED_LINKER_FLAGS_DEVEL CMAKE_EXE_LINKER_FLAGS_DEVEL CMAKE_MAP_IMPORTED_CONFIG_DEVEL)
 
+# Architecture bitness detection
+include(TargetArch)
+target_architecture(CMAKE_HOST_SYSTEM_PROCESSOR)
+
 #-------------------------------------------------------------------------------
 # Select the architecture
 #-------------------------------------------------------------------------------
@@ -112,7 +116,10 @@ elseif("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64" OR "${CMAKE_HOST_SYSTEM
 	message(STATUS "Building for Apple Silicon (ARM64).")
 	list(APPEND PCSX2_DEFS _M_ARM64=1)
 	set(_M_ARM64 TRUE)
-	add_compile_options("-march=armv8.4-a" "-mcpu=apple-m1")
+#	add_compile_options("-march=armv8.4-a" "-mcpu=apple-m1")
+
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+	add_definitions("-march=armv8-a+crc")
 
 	# If we're running on Linux, we need to detect the page/cache line size.
 	# It could be a virtual machine with 4K pages, or 16K with Asahi.

@@ -122,6 +122,12 @@ if(_M_X86)
 		emitter/x86emitter.h
 		emitter/x86types.h
 	)
+else()
+	target_sources(common PRIVATE
+		emitter/x86emitter.cpp
+		emitter/x86emitter.h
+		emitter/x86types.h
+	)
 endif()
 
 if(WIN32)
@@ -161,15 +167,17 @@ else()
 		Linux/LnxThreads.cpp
 		Linux/LnxMisc.cpp
 	)
-	target_include_directories(common PRIVATE
-		${DBUS_INCLUDE_DIRS}
-	)
-	target_link_libraries(common PRIVATE
-		${DBUS_LINK_LIBRARIES}
-		X11::X11
-		X11::Xrandr
-		X11::Xi
-	)
+	if(X11_API)
+		target_include_directories(common PRIVATE
+			${DBUS_INCLUDE_DIRS}
+		)
+		target_link_libraries(common PRIVATE
+			${DBUS_LINK_LIBRARIES}
+			X11::X11
+			X11::Xrandr
+			X11::Xi
+		)
+	endif()
 	if(USE_BACKTRACE)
 		target_compile_definitions(common PRIVATE "HAS_LIBBACKTRACE=1")
 		target_link_libraries(common PRIVATE libbacktrace::libbacktrace)
@@ -196,29 +204,51 @@ if(NOT WIN32)
 		HTTPDownloaderCurl.cpp
 		HTTPDownloaderCurl.h
 	)
+	if(ANDROID)
+		target_link_libraries(common PRIVATE curl ssl crypto nghttp2 pcap)
+	else()
+		target_link_libraries(common PRIVATE
+			CURL::libcurl
+		)
+	endif()
+endif()
+
+if(ANDROID)
 	target_link_libraries(common PRIVATE
-		CURL::libcurl
+		${LIBC_LIBRARIES}
+		jpeg
+		png16
+		webp
+	)
+else()
+	target_link_libraries(common PRIVATE
+		${LIBC_LIBRARIES}
+		JPEG::JPEG
+		PNG::PNG
+		WebP::libwebp
 	)
 endif()
 
-target_link_libraries(common PRIVATE
-	${LIBC_LIBRARIES}
-	JPEG::JPEG
-	PNG::PNG
-	WebP::libwebp
-)
-
-target_link_libraries(common PUBLIC
-	fmt::fmt
-	fast_float
-)
+if(ANDROID)
+	find_library(log-lib log)
+	target_link_libraries(common PUBLIC
+		fmt::fmt
+		fast_float
+		${log-lib}
+	)
+else()
+	target_link_libraries(common PUBLIC
+		fmt::fmt
+		fast_float
+	)
+endif()
 
 fixup_file_properties(common)
-target_compile_features(common PUBLIC cxx_std_17)
-target_include_directories(common PUBLIC ../3rdparty/include ../)
+target_compile_features(common PUBLIC cxx_std_20)
+target_include_directories(common PUBLIC ../3rdparty/include ../3rdparty/vixl/include ../)
 target_compile_definitions(common PUBLIC "${PCSX2_DEFS}")
 target_compile_options(common PRIVATE "${PCSX2_WARNINGS}")
 
-if(COMMAND target_precompile_headers)
-	target_precompile_headers(common PRIVATE PrecompiledHeader.h)
-endif()
+#if(COMMAND target_precompile_headers)
+#	target_precompile_headers(common PRIVATE PrecompiledHeader.h)
+#endif()

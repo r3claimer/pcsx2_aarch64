@@ -167,7 +167,6 @@ else()
 		Linux/LnxThreads.cpp
 		Linux/LnxMisc.cpp
 	)
-	if(X11_API)
 		target_include_directories(common PRIVATE
 			${DBUS_INCLUDE_DIRS}
 		)
@@ -177,7 +176,6 @@ else()
 			X11::Xrandr
 			X11::Xi
 		)
-	endif()
 	if(USE_BACKTRACE)
 		target_compile_definitions(common PRIVATE "HAS_LIBBACKTRACE=1")
 		target_link_libraries(common PRIVATE libbacktrace::libbacktrace)

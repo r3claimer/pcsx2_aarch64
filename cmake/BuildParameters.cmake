@@ -113,13 +113,15 @@ elseif("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64" OR "${CMAKE_HOST_SYSTEM
 	# If we're running on Linux, we need to detect the page/cache line size.
 	# It could be a virtual machine with 4K pages, or 16K with Asahi.
 	if(LINUX)
-		detect_page_size()
+		# Cross-compiling: hardcode values
+		set(HOST_PAGE_SIZE 4096)
+		set(HOST_CACHE_LINE_SIZE 64)
+
 		list(APPEND PCSX2_DEFS OVERRIDE_HOST_PAGE_SIZE=${HOST_PAGE_SIZE})
-		detect_cache_line_size()
 		list(APPEND PCSX2_DEFS OVERRIDE_HOST_CACHE_LINE_SIZE=${HOST_CACHE_LINE_SIZE})
 	endif()
-	
-	# Windows page/cache line size seems to match x68-64 
+
+	# Windows page/cache line size seems to match x68-64
 	if(WIN32)
 		list(APPEND PCSX2_DEFS OVERRIDE_HOST_PAGE_SIZE=0x1000)
 		# Value of std::hardware_destructive_interference_size for ARM64 on MSVC toolset 14.40.33807

@@ -214,6 +214,7 @@ if(NOT WIN32)
 endif()
 
 find_package(JPEG REQUIRED)
+find_package(PNG)
 
 target_link_libraries(common PRIVATE
         ${LIBC_LIBRARIES}

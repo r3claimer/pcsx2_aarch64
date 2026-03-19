@@ -833,7 +833,7 @@ set(pcsx2DebugToolsHeaders
 set(pcsx2HostSources
 	Host/AudioStream.cpp
 	Host/CubebAudioStream.cpp
-	Host/SDLAudioStream.cpp
+	Host/SDLAudioStream.cpp)
 
 set(pcsx2HostHeaders
 	Host/AudioStream.h

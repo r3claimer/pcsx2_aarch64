@@ -213,6 +213,8 @@ if(NOT WIN32)
 	endif()
 endif()
 
+find_package(JPEG REQUIRED)
+
 target_link_libraries(common PRIVATE
         ${LIBC_LIBRARIES}
         JPEG::JPEG

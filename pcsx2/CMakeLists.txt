@@ -8,6 +8,10 @@ if(ANDROID)
 		"PCSX2_CORE=1"
 		"DISABLE_RECORDING"
 	)
+elseif(LINUX AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    # Desktop aarch64 Linux
+    add_executable(PCSX2 ${pcsx2Sources} ${pcsx2Headers})
+    target_link_libraries(PCSX2 PRIVATE PCSX2_FLAGS)
 else()
 	if(DISABLE_ADVANCE_SIMD OR LTO_PCSX2_CORE)
 		# Fixes issues with some compiler + linker combinations

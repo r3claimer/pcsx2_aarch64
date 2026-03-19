@@ -1,15 +1,24 @@
 # All flags, libraries, etc, that are shared between PCSX2 compilation files
 add_library(PCSX2_FLAGS INTERFACE)
 
-if(DISABLE_ADVANCE_SIMD OR LTO_PCSX2_CORE)
-	# Fixes issues with some compiler + linker combinations
-	add_library(PCSX2 OBJECT)
+if(ANDROID)
+	add_library(PCSX2 SHARED)
+	set_target_properties(PCSX2 PROPERTIES OUTPUT_NAME "emucore")
+	target_compile_definitions(PCSX2_FLAGS INTERFACE
+		"PCSX2_CORE=1"
+		"DISABLE_RECORDING"
+	)
 else()
-	add_library(PCSX2)
+	if(DISABLE_ADVANCE_SIMD OR LTO_PCSX2_CORE)
+		# Fixes issues with some compiler + linker combinations
+		add_library(PCSX2 OBJECT)
+	else()
+		add_library(PCSX2)
+	endif()
 endif()
 target_link_libraries(PCSX2 PRIVATE PCSX2_FLAGS)
 
-target_compile_features(PCSX2_FLAGS INTERFACE cxx_std_17)
+target_compile_features(PCSX2_FLAGS INTERFACE cxx_std_20)
 target_compile_definitions(PCSX2_FLAGS INTERFACE "${PCSX2_DEFS}")
 target_compile_options(PCSX2_FLAGS INTERFACE "${PCSX2_WARNINGS}")
 
@@ -72,7 +81,7 @@ set(pcsx2Sources
 	GS.cpp
 	GSDumpReplayer.cpp
 	Host.cpp
-	Hotkeys.cpp
+#	Hotkeys.cpp
 	Hw.cpp
 	HwRead.cpp
 	HwWrite.cpp
@@ -606,6 +615,11 @@ if(USE_OPENGL)
 		if(X11_API OR WAYLAND_API)
 			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGL.cpp)
 			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGL.h)
+		elseif(ANDROID)
+			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGL.cpp)
+			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGL.h)
+			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGLAndroid.cpp)
+			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGLAndroid.h)
 		endif()
 
 		if(X11_API)
@@ -646,7 +660,7 @@ if(USE_VULKAN)
 		GS/Renderers/Vulkan/VKStreamBuffer.h
 		GS/Renderers/Vulkan/VKSwapChain.h
 	)
-	target_link_libraries(PCSX2_FLAGS INTERFACE vulkan-headers)
+	target_link_libraries(PCSX2_FLAGS INTERFACE vulkan-headers glslang)
 	target_include_directories(PCSX2_FLAGS INTERFACE ${SHADERC_INCLUDE_DIR})
 endif()
 
@@ -821,7 +835,8 @@ set(pcsx2DebugToolsHeaders
 set(pcsx2HostSources
 	Host/AudioStream.cpp
 	Host/CubebAudioStream.cpp
-	Host/SDLAudioStream.cpp)
+	Host/SDLAudioStream.cpp
+	Host/OboeAudioStream.cpp)
 
 set(pcsx2HostHeaders
 	Host/AudioStream.h
@@ -992,8 +1007,8 @@ set(pcsx2x86Sources
 	x86/ix86-32/iR5900Shift.cpp
 	x86/ix86-32/iR5900Templates.cpp
 	x86/ix86-32/recVTLB.cpp
-	x86/Vif_Dynarec.cpp
-	x86/Vif_UnpackSSE.cpp
+#	x86/Vif_Dynarec.cpp
+#	x86/Vif_UnpackSSE.cpp
 	)
 
 # x86 headers
@@ -1032,21 +1047,21 @@ set(pcsx2x86Headers
 	x86/microVU_Profiler.h
 	x86/microVU_Tables.inl
 	x86/microVU_Upper.inl
-	x86/newVif.h
-	x86/Vif_UnpackSSE.h
 	x86/R5900_Profiler.h
+#	x86/newVif.h
+#	x86/Vif_UnpackSSE.h
 	)
 
 # ARM64
 set(pcsx2arm64Sources
-	arm64/AsmHelpers.cpp
 	arm64/Vif_Dynarec.cpp
 	arm64/Vif_UnpackNEON.cpp
-	arm64/RecStubs.cpp
+	arm64/VixlHelpers.cpp
+#	arm64/RecStubs.cpp
 	)
 
 set(pcsx2arm64Headers
-	arm64/AsmHelpers.h
+	arm64/VixlHelpers.h
 )
 
 # These ones benefit a lot from LTO
@@ -1061,13 +1076,13 @@ set(pcsx2LTOSources
 	${pcsx2GSHeaders}
 )
 
-if(_M_X86)
+#if(_M_X86)
 	list(APPEND pcsx2LTOSources ${pcsx2x86Sources} ${pcsx2x86Headers})
-	target_link_libraries(PCSX2_FLAGS INTERFACE zydis)
-elseif(_M_ARM64)
+#	target_link_libraries(PCSX2_FLAGS INTERFACE zydis)
+#elseif(_M_ARM64)
 	list(APPEND pcsx2LTOSources ${pcsx2arm64Sources} ${pcsx2arm64Headers})
 	target_link_libraries(PCSX2_FLAGS INTERFACE vixl)
-endif()
+#endif()
 
 if(LTO_PCSX2_CORE)
 	add_library(PCSX2_LTO ${pcsx2LTOSources})
@@ -1104,7 +1119,13 @@ target_sources(PCSX2 PRIVATE
 )
 
 # platform sources
-if(LINUX)
+if(ANDROID)
+	target_sources(PCSX2 PRIVATE
+		${pcsx2LinuxSources}
+		${pcsx2LinuxHeaders}
+		../native-lib.cpp
+	)
+elseif(LINUX)
 	target_sources(PCSX2 PRIVATE
 		${pcsx2LinuxSources}
 		${pcsx2LinuxHeaders}
@@ -1152,13 +1173,13 @@ target_link_libraries(PCSX2_FLAGS INTERFACE
 	ZLIB::ZLIB
 	LZ4::LZ4
 	SoundTouch::SoundTouch
-	PNG::PNG
+#	PNG::PNG
 	LZMA::LZMA
 	Zstd::Zstd
 	demanglegnu
 	ccc
-	plutovg::plutovg
-	plutosvg::plutosvg
+#	plutovg::plutovg
+#	plutosvg::plutosvg
 	${LIBC_LIBRARIES}
 )
 
@@ -1185,6 +1206,14 @@ if(WIN32)
 		dwmapi.lib
 		OneCore.lib
 	)
+elseif(ANDROID)
+	find_library(log-lib log)
+	target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
+	target_link_libraries(PCSX2_FLAGS INTERFACE
+		oboe
+		android
+		${log-lib}
+	)
 else()
 	target_link_libraries(PCSX2_FLAGS INTERFACE
 		PCAP::PCAP
@@ -1196,18 +1225,30 @@ if(_M_X86)
 	target_include_directories(PCSX2_FLAGS INTERFACE "${CMAKE_SOURCE_DIR}/3rdparty/xbyak")
 	target_compile_definitions(PCSX2_FLAGS INTERFACE XBYAK_NO_EXCEPTION)
 endif()
-target_include_directories(PCSX2_FLAGS INTERFACE
-	"${CMAKE_CURRENT_SOURCE_DIR}"
-	"${CMAKE_BINARY_DIR}/pcsx2"
-	"${CMAKE_BINARY_DIR}/common/include"
-	"${FFMPEG_INCLUDE_DIRS}"
-)
+
+if(ANDROID)
+	target_include_directories(PCSX2_FLAGS INTERFACE
+		"${CMAKE_CURRENT_SOURCE_DIR}"
+		"${CMAKE_BINARY_DIR}/pcsx2"
+		"${CMAKE_BINARY_DIR}/common/include"
+		"${CMAKE_SOURCE_DIR}/3rdparty/libjpeg"
+		"${CMAKE_SOURCE_DIR}/3rdparty/shaderc/include"
+		"${CMAKE_SOURCE_DIR}/3rdparty/ffmpeg/include"
+	)
+else()
+	target_include_directories(PCSX2_FLAGS INTERFACE
+		"${CMAKE_CURRENT_SOURCE_DIR}"
+		"${CMAKE_BINARY_DIR}/pcsx2"
+		"${CMAKE_BINARY_DIR}/common/include"
+		"${FFMPEG_INCLUDE_DIRS}"
+	)
+endif()
 
 set_source_files_properties(PrecompiledHeader.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
-if(COMMAND target_precompile_headers)
-	message("Using precompiled headers.")
-	target_precompile_headers(PCSX2_FLAGS INTERFACE PrecompiledHeader.h)
-endif()
+#if(COMMAND target_precompile_headers)
+#	message("Using precompiled headers.")
+#	target_precompile_headers(PCSX2_FLAGS INTERFACE PrecompiledHeader.h)
+#endif()
 
 # Copy resource files if needed
 function(pcsx2_resource target path basedir)
@@ -1225,16 +1266,20 @@ function(pcsx2_resource target path basedir)
 endfunction()
 
 if (NOT APPLE)
-	set_target_properties(PCSX2 PROPERTIES
-		OUTPUT_NAME pcsx2
-	)
+	if (NOT ANDROID)
+		set_target_properties(PCSX2 PROPERTIES
+			OUTPUT_NAME pcsx2
+		)
+	endif()
 endif()
 
 fixup_file_properties(PCSX2)
 # Directories like /usr/local/include, /opt/local/include, etc tend to include lots of headers from lots of libraries.
 # Possibly including libraries that we compiled versions of with the dependency build script.
 # To ensure the dependency build script's headers are preferred, push any directories that look like */local/include to the end.
+if (NOT ANDROID)
 force_include_last(PCSX2_FLAGS "/(usr|local)/include/?$")
+endif()
 
 if (APPLE)
 	find_library(APPKIT_LIBRARY AppKit)

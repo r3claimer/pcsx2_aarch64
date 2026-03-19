@@ -1195,11 +1195,12 @@ bool VMManager::AutoDetectSource(const std::string& filename)
 {
 	if (!filename.empty())
 	{
-		if (!FileSystem::FileExists(filename.c_str()))
-		{
-			Host::ReportErrorAsync("Error", fmt::format("Requested filename '{}' does not exist.", filename));
-			return false;
-		}
+        if (filename.rfind("content://", 0) != 0) {
+            if (!FileSystem::FileExists(filename.c_str())) {
+                Host::ReportErrorAsync("Error", fmt::format("Requested filename '{}' does not exist.", filename));
+                return false;
+            }
+        }
 
 		if (IsGSDumpFileName(filename))
 		{
@@ -1274,7 +1275,9 @@ bool VMManager::Initialize(VMBootParameters boot_params)
 	s_state.store(VMState::Initializing, std::memory_order_release);
 	s_vm_thread_handle = Threading::ThreadHandle::GetForCallingThread();
 	Host::OnVMStarting();
+#if !defined(__ANDROID__)
 	VMManager::Internal::ResetVMHotkeyState();
+#endif
 
 	ScopedGuard close_state = [] {
 		if (GSDumpReplayer::IsReplayingDump())
@@ -2563,18 +2566,18 @@ void VMManager::LogCPUCapabilities()
 
 void VMManager::InitializeCPUProviders()
 {
-#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
+//#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
 	recCpu.Reserve();
 	psxRec.Reserve();
 
 	CpuMicroVU0.Reserve();
 	CpuMicroVU1.Reserve();
-#else
-	// Despite not having any VU recompilers on ARM64, therefore no MTVU,
-	// we still need the thread alive. Otherwise the read and write positions
-	// of the ring buffer wont match, and various systems in the emulator end up deadlocked.
-	vu1Thread.Open();
-#endif
+//#else
+//	// Despite not having any VU recompilers on ARM64, therefore no MTVU,
+//	// we still need the thread alive. Otherwise the read and write positions
+//	// of the ring buffer wont match, and various systems in the emulator end up deadlocked.
+//	vu1Thread.Open();
+//#endif
 
 	VifUnpackSSE_Init();
 }
@@ -2587,18 +2590,18 @@ void VMManager::ShutdownCPUProviders()
 		dVifRelease(0);
 	}
 
-#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
+//#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
 	CpuMicroVU1.Shutdown();
 	CpuMicroVU0.Shutdown();
 
 	psxRec.Shutdown();
 	recCpu.Shutdown();
-#else
-	// See the comment in the InitializeCPUProviders for an explaination why we
-	// still need to manage the MTVU thread.
-	if (vu1Thread.IsOpen())
-		vu1Thread.WaitVU();
-#endif
+//#else
+//	// See the comment in the InitializeCPUProviders for an explaination why we
+//	// still need to manage the MTVU thread.
+//	if (vu1Thread.IsOpen())
+//		vu1Thread.WaitVU();
+//#endif
 }
 
 void VMManager::UpdateCPUImplementations()
@@ -2612,19 +2615,19 @@ void VMManager::UpdateCPUImplementations()
 		return;
 	}
 
-#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
+//#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
 	Cpu = CHECK_EEREC ? &recCpu : &intCpu;
 	psxCpu = CHECK_IOPREC ? &psxRec : &psxInt;
 
 	CpuVU0 = EmuConfig.Cpu.Recompiler.EnableVU0 ? static_cast<BaseVUmicroCPU*>(&CpuMicroVU0) : static_cast<BaseVUmicroCPU*>(&CpuIntVU0);
 	CpuVU1 = EmuConfig.Cpu.Recompiler.EnableVU1 ? static_cast<BaseVUmicroCPU*>(&CpuMicroVU1) : static_cast<BaseVUmicroCPU*>(&CpuIntVU1);
-#else
-	Cpu = &intCpu;
-	psxCpu = &psxInt;
-
-	CpuVU0 = &CpuIntVU0;
-	CpuVU1 = &CpuIntVU1;
-#endif
+//#else
+//	Cpu = &intCpu;
+//	psxCpu = &psxInt;
+//
+//	CpuVU0 = &CpuIntVU0;
+//	CpuVU1 = &CpuIntVU1;
+//#endif
 }
 
 void VMManager::Internal::ClearCPUExecutionCaches()
@@ -2632,11 +2635,11 @@ void VMManager::Internal::ClearCPUExecutionCaches()
 	Cpu->Reset();
 	psxCpu->Reset();
 
-#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
+//#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
 	// mVU's VU0 needs to be properly initialized for macro mode even if it's not used for micro mode!
 	if (CHECK_EEREC && !EmuConfig.Cpu.Recompiler.EnableVU0)
 		CpuMicroVU0.Reset();
-#endif
+//#endif
 
 	CpuVU0->Reset();
 	CpuVU1->Reset();
@@ -3331,11 +3334,12 @@ void VMManager::UpdateInhibitScreensaver(bool inhibit)
 {
 	if (s_screensaver_inhibited == inhibit)
 		return;
-
+#if !defined(__ANDROID__)
 	if (Common::InhibitScreensaver(inhibit))
 		s_screensaver_inhibited = inhibit;
 	else if (inhibit)
 		Console.Warning("Failed to inhibit screen saver.");
+#endif
 }
 
 void VMManager::SaveSessionTime(const std::string& prev_serial)

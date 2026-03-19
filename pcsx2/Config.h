@@ -887,7 +887,7 @@ struct Pcsx2Config
 		};
 
 		static constexpr s32 MAX_VOLUME = 200;
-		static constexpr AudioBackend DEFAULT_BACKEND = AudioBackend::Cubeb;
+		static constexpr AudioBackend DEFAULT_BACKEND = AudioBackend::Oboe;
 		static constexpr SPU2SyncMode DEFAULT_SYNC_MODE = SPU2SyncMode::TimeStretch;
 
 		static std::optional<SPU2SyncMode> ParseSyncMode(const char* str);
@@ -1403,11 +1403,11 @@ namespace EmuFolders
 
 // ------------ CPU / Recompiler Options ---------------
 
-#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
+//#ifdef _M_X86 // TODO(Stenzek): Remove me once EE/VU/IOP recs are added.
 #define THREAD_VU1 (EmuConfig.Cpu.Recompiler.EnableVU1 && EmuConfig.Speedhacks.vuThread)
-#else
-#define THREAD_VU1 false
-#endif
+//#else
+//#define THREAD_VU1 false
+//#endif
 #define INSTANT_VU1 (EmuConfig.Speedhacks.vu1Instant)
 #define CHECK_EEREC (EmuConfig.Cpu.Recompiler.EnableEE)
 #define CHECK_CACHE (EmuConfig.Cpu.Recompiler.EnableEECache)
@@ -1454,11 +1454,11 @@ namespace EmuFolders
 #define JUMP_RECOMPILE
 #define LOADSTORE_RECOMPILE
 #define MOVE_RECOMPILE
-#define MMI_RECOMPILE
-#define MMI0_RECOMPILE
-#define MMI1_RECOMPILE
-#define MMI2_RECOMPILE
-#define MMI3_RECOMPILE
+//#define MMI_RECOMPILE
+//#define MMI0_RECOMPILE
+//#define MMI1_RECOMPILE
+//#define MMI2_RECOMPILE
+//#define MMI3_RECOMPILE
 #define FPU_RECOMPILE
 #define CP0_RECOMPILE
 #define CP2_RECOMPILE

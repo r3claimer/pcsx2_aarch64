@@ -5,7 +5,7 @@
 
 #include "common/Pcsx2Defs.h"
 
-#include "glad/gl.h"
+#include "glad.h"
 
 #include <string_view>
 #include <vector>

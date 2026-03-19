@@ -5,7 +5,7 @@
 
 #include "GS/Renderers/Common/GSTexture.h"
 
-#include "glad/gl.h"
+#include "glad.h"
 
 class GSTextureOGL final : public GSTexture
 {

@@ -216,7 +216,9 @@ static const char eeOpcodeName[][16] = {
 #include <utility>
 #include <algorithm>
 
+#if !defined(__ANDROID__)
 using namespace x86Emitter;
+#endif
 
 struct eeProfiler
 {

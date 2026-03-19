@@ -291,7 +291,12 @@ namespace R3000A
 			const int native_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #endif
 
-			const int hostfd = FileSystem::OpenFDFile(file_path.c_str(), native_flags, native_mode);
+            int hostfd;
+            if (file_path.rfind("content://", 0) == 0) {
+                hostfd = FileSystem::OpenFDFileContent(file_path.c_str());
+            } else {
+                hostfd = FileSystem::OpenFDFile(file_path.c_str(), native_flags, native_mode);
+            }
 			if (hostfd < 0)
 				return translate_error(hostfd);
 

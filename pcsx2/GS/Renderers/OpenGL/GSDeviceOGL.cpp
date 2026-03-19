@@ -32,17 +32,17 @@ static constexpr u32 TEXTURE_UPLOAD_BUFFER_SIZE = 128 * 1024 * 1024;
 
 namespace ReplaceGL
 {
-	static void GLAPIENTRY ScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width, GLsizei height)
+	static void APIENTRY ScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width, GLsizei height)
 	{
 		glScissor(left, bottom, width, height);
 	}
 
-	static void GLAPIENTRY ViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
+	static void APIENTRY ViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
 	{
 		glViewport(GLint(x), GLint(y), GLsizei(w), GLsizei(h));
 	}
 
-	static void GLAPIENTRY TextureBarrier()
+	static void APIENTRY TextureBarrier()
 	{
 	}
 
@@ -51,59 +51,59 @@ namespace ReplaceGL
 namespace Emulate_DSA
 {
 	// Texture entry point
-	static void GLAPIENTRY BindTextureUnit(GLuint unit, GLuint texture)
+	static void APIENTRY BindTextureUnit(GLuint unit, GLuint texture)
 	{
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_2D, texture);
 	}
 
-	static void GLAPIENTRY CreateTexture(GLenum target, GLsizei n, GLuint* textures)
+	static void APIENTRY CreateTexture(GLenum target, GLsizei n, GLuint* textures)
 	{
 		glGenTextures(1, textures);
 	}
 
-	static void GLAPIENTRY TextureStorage(
+	static void APIENTRY TextureStorage(
 		GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 	{
 		BindTextureUnit(7, texture);
 		glTexStorage2D(GL_TEXTURE_2D, levels, internalformat, width, height);
 	}
 
-	static void GLAPIENTRY TextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width,
+	static void APIENTRY TextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width,
 		GLsizei height, GLenum format, GLenum type, const void* pixels)
 	{
 		BindTextureUnit(7, texture);
 		glTexSubImage2D(GL_TEXTURE_2D, level, xoffset, yoffset, width, height, format, type, pixels);
 	}
 
-	static void GLAPIENTRY CompressedTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
+	static void APIENTRY CompressedTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
 		GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void* data)
 	{
 		BindTextureUnit(7, texture);
 		glCompressedTexSubImage2D(GL_TEXTURE_2D, level, xoffset, yoffset, width, height, format, imageSize, data);
 	}
 
-	static void GLAPIENTRY GetTexureImage(
+	static void APIENTRY GetTexureImage(
 		GLuint texture, GLint level, GLenum format, GLenum type, GLsizei bufSize, void* pixels)
 	{
 		BindTextureUnit(7, texture);
 		glGetTexImage(GL_TEXTURE_2D, level, format, type, pixels);
 	}
 
-	static void GLAPIENTRY TextureParameteri(GLuint texture, GLenum pname, GLint param)
+	static void APIENTRY TextureParameteri(GLuint texture, GLenum pname, GLint param)
 	{
 		BindTextureUnit(7, texture);
 		glTexParameteri(GL_TEXTURE_2D, pname, param);
 	}
 
-	static void GLAPIENTRY GenerateTextureMipmap(GLuint texture)
+	static void APIENTRY GenerateTextureMipmap(GLuint texture)
 	{
 		BindTextureUnit(7, texture);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 
 	// Misc entry point
-	static void GLAPIENTRY CreateSamplers(GLsizei n, GLuint* samplers)
+	static void APIENTRY CreateSamplers(GLsizei n, GLuint* samplers)
 	{
 		glGenSamplers(n, samplers);
 	}
@@ -166,11 +166,10 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 	if (!AcquireWindow(true))
 		return false;
 
-	Error error;
-	m_gl_context = GLContext::Create(m_window_info, &error);
+	m_gl_context = GLContext::Create(m_window_info);
 	if (!m_gl_context)
 	{
-		Console.ErrorFmt("GL: Failed to create any context: {}", error.GetDescription());
+		Console.ErrorFmt("GL: Failed to create any context");
 		return false;
 	}
 
@@ -179,6 +178,8 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 		Console.Error("GL: Failed to make context current");
 		return false;
 	}
+
+    m_is_gles = m_gl_context->IsGLES();
 
 	bool buggy_pbo;
 	if (!CheckFeatures(buggy_pbo))
@@ -195,7 +196,7 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 
 	if (!GSConfig.DisableShaderCache)
 	{
-		if (!m_shader_cache.Open())
+		if (!m_shader_cache.Open(m_is_gles))
 			Console.Warning("GL: Shader cache failed to open.");
 	}
 	else
@@ -211,12 +212,20 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 	// ****************************************************************
 	if (GSConfig.UseDebugDevice)
 	{
-		glDebugMessageCallback(DebugMessageCallback, NULL);
+        if (!m_is_gles) {
+            glDebugMessageCallback(DebugMessageCallback, NULL);
 
-		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, true);
-		// Useless info message on Nvidia driver
-		static constexpr const GLuint ids[] = { 0x20004 };
-		glDebugMessageControl(GL_DEBUG_SOURCE_API_ARB, GL_DEBUG_TYPE_OTHER_ARB, GL_DONT_CARE, std::size(ids), ids, false);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, true);
+            // Useless info message on Nvidia driver
+            static constexpr const GLuint ids[] = {0x20004};
+            glDebugMessageControl(GL_DEBUG_SOURCE_API_ARB, GL_DEBUG_TYPE_OTHER_ARB, GL_DONT_CARE,
+                                  std::size(ids), ids, false);
+        }
+        else if (GLAD_GL_KHR_debug)
+        {
+            glDebugMessageCallbackKHR(DebugMessageCallback, NULL);
+            glDebugMessageControlKHR(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, true);
+        }
 
 		// Uncomment synchronous if you want callstacks which match where the error occurred.
 		glEnable(GL_DEBUG_OUTPUT);
@@ -485,10 +494,12 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 	{
 		GL_PUSH("GSDeviceOGL::Rasterization");
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_SCISSOR_TEST);
-		glDisable(GL_MULTISAMPLE);
+        if (!m_is_gles) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glDisable(GL_MULTISAMPLE);
+        }
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_SCISSOR_TEST);
 
 		glDisable(GL_DITHER); // Honestly I don't know!
 	}
@@ -523,7 +534,9 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 	// This extension allow FS depth to range from -1 to 1. So
 	// gl_position.z could range from [0, 1]
 	// Change depth convention
-	glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+    if (!m_is_gles) {
+        glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+    }
 
 	// ****************************************************************
 	// HW renderer shader
@@ -636,7 +649,7 @@ bool GSDeviceOGL::CheckFeatures(bool& buggy_pbo)
 	GLint minor_gl = 0;
 	glGetIntegerv(GL_MAJOR_VERSION, &major_gl);
 	glGetIntegerv(GL_MINOR_VERSION, &minor_gl);
-	if (!GLAD_GL_VERSION_3_3)
+	if (!m_is_gles && !GLAD_GL_VERSION_3_3)
 	{
 		Host::ReportErrorAsync(
 			"GS", fmt::format(TRANSLATE_FS("GSDeviceOGL", "OpenGL renderer is not supported. Only OpenGL {}.{}\n was found"), major_gl, minor_gl));
@@ -663,25 +676,27 @@ bool GSDeviceOGL::CheckFeatures(bool& buggy_pbo)
 	}
 	DevCon.WriteLn(std::move(extensions));
 
-	if (!GLAD_GL_ARB_shading_language_420pack)
-	{
-		Host::ReportFormattedErrorAsync(
-			"GS", "GL_ARB_shading_language_420pack is not supported, this is required for the OpenGL renderer.");
-		return false;
-	}
+    if (!m_is_gles) {
+        if (!GLAD_GL_ARB_shading_language_420pack) {
+            Host::ReportFormattedErrorAsync(
+                    "GS",
+                    "GL_ARB_shading_language_420pack is not supported, this is required for the OpenGL renderer.");
+            return false;
+        }
 
-	if (!GLAD_GL_VERSION_4_3 && !GLAD_GL_ARB_copy_image && !GLAD_GL_EXT_copy_image)
-	{
-		Host::ReportFormattedErrorAsync(
-			"GS", "GL_ARB_copy_image is not supported, this is required for the OpenGL renderer.");
-		return false;
-	}
-	if (!GLAD_GL_VERSION_4_5 && !GLAD_GL_ARB_clip_control)
-	{
-		Host::ReportFormattedErrorAsync(
-			"GS", "GL_ARB_clip_control is not supported, this is required for the OpenGL renderer.");
-		return false;
-	}
+        if (!GLAD_GL_VERSION_4_3 && !GLAD_GL_ARB_copy_image && !GLAD_GL_EXT_copy_image) {
+            Host::ReportFormattedErrorAsync(
+                    "GS",
+                    "GL_ARB_copy_image is not supported, this is required for the OpenGL renderer.");
+            return false;
+        }
+        if (!GLAD_GL_VERSION_4_5 && !GLAD_GL_ARB_clip_control) {
+            Host::ReportFormattedErrorAsync(
+                    "GS",
+                    "GL_ARB_clip_control is not supported, this is required for the OpenGL renderer.");
+            return false;
+        }
+    }
 
 	if (!GLAD_GL_ARB_viewport_array)
 	{
@@ -705,7 +720,11 @@ bool GSDeviceOGL::CheckFeatures(bool& buggy_pbo)
 
 	// Don't use PBOs when we don't have ARB_buffer_storage, orphaning buffers probably ends up worse than just
 	// using the normal texture update routines and letting the driver take care of it.
-	buggy_pbo = !GLAD_GL_VERSION_4_4 && !GLAD_GL_ARB_buffer_storage && !GLAD_GL_EXT_buffer_storage;
+    if (!m_is_gles) {
+        buggy_pbo = !GLAD_GL_VERSION_4_4 && !GLAD_GL_ARB_buffer_storage && !GLAD_GL_EXT_buffer_storage;
+    } else {
+        buggy_pbo = GLAD_GL_EXT_buffer_storage;
+    }
 	if (buggy_pbo)
 		Console.Warning("GL: Not using PBOs for texture uploads because buffer_storage is unavailable.");
 
@@ -991,20 +1010,27 @@ void GSDeviceOGL::DestroyTimestampQueries()
 
 void GSDeviceOGL::PopTimestampQuery()
 {
-	while (m_waiting_timestamp_queries > 0)
-	{
-		GLint available = 0;
-		glGetQueryObjectiv(m_timestamp_queries[m_read_timestamp_query], GL_QUERY_RESULT_AVAILABLE, &available);
+    while (m_waiting_timestamp_queries > 0)
+    {
+#if defined(__ANDROID__)
+        glBeginQuery(GL_TIME_ELAPSED, m_timestamp_queries[m_read_timestamp_query]);
 
-		if (!available)
-			break;
+        GLuint result = 0;
+        glGetQueryObjectuiv(m_timestamp_queries[m_read_timestamp_query], GL_QUERY_RESULT, &result);
+        m_accumulated_gpu_time += static_cast<float>(static_cast<double>(result) / 1000000.0);
+#else
+        GLint available = 0;
+        glGetQueryObjectiv(m_timestamp_queries[m_read_timestamp_query], GL_QUERY_RESULT_AVAILABLE, &available);
+        if (!available)
+            break;
 
-		u64 result = 0;
-		glGetQueryObjectui64v(m_timestamp_queries[m_read_timestamp_query], GL_QUERY_RESULT, &result);
-		m_accumulated_gpu_time += static_cast<float>(static_cast<double>(result) / 1000000.0);
-		m_read_timestamp_query = (m_read_timestamp_query + 1) % NUM_TIMESTAMP_QUERIES;
-		m_waiting_timestamp_queries--;
-	}
+        u64 result = 0;
+        glGetQueryObjectui64v(m_timestamp_queries[m_read_timestamp_query], GL_QUERY_RESULT, &result);
+        m_accumulated_gpu_time += static_cast<float>(static_cast<double>(result) / 1000000.0);
+#endif
+        m_read_timestamp_query = (m_read_timestamp_query + 1) % NUM_TIMESTAMP_QUERIES;
+        m_waiting_timestamp_queries--;
+    }
 
 	if (m_timestamp_query_started)
 	{
@@ -1280,30 +1306,70 @@ std::string GSDeviceOGL::GenGlslHeader(const std::string_view entry, GLenum type
 {
 	std::string header;
 
-	// Intel's GL driver doesn't like the readonly qualifier with 3.3 GLSL.
-	if (m_features.vs_expand && GLAD_GL_VERSION_4_3)
-	{
-		header = "#version 430 core\n";
-	}
-	else
-	{
-		header = "#version 330 core\n";
-		header += "#extension GL_ARB_shading_language_420pack : require\n";
-		if (GLAD_GL_ARB_gpu_shader5)
-			header += "#extension GL_ARB_gpu_shader5 : require\n";
-		if (m_features.vs_expand)
-			header += "#extension GL_ARB_shader_storage_buffer_object: require\n";
-	}
+    if (m_is_gles)
+    {
+        if (GLAD_GL_ES_VERSION_3_2)
+            header = "#version 320 es\n";
+        else if (GLAD_GL_ES_VERSION_3_1)
+            header = "#version 310 es\n";
 
-	if (GLAD_GL_ARB_shader_draw_parameters)
-		header += "#extension GL_ARB_shader_draw_parameters : require\n";
-	if (m_features.framebuffer_fetch && GLAD_GL_EXT_shader_framebuffer_fetch)
-		header += "#extension GL_EXT_shader_framebuffer_fetch : require\n";
+        if (GLAD_GL_EXT_blend_func_extended)
+            header += "#extension GL_EXT_blend_func_extended : require\n";
+        if (GLAD_GL_ARB_blend_func_extended)
+            header += "#extension GL_ARB_blend_func_extended : require\n";
+
+        if (m_features.framebuffer_fetch)
+        {
+            if (GLAD_GL_ARM_shader_framebuffer_fetch)
+                header += "#extension GL_ARM_shader_framebuffer_fetch : require\n";
+            else if (GLAD_GL_EXT_shader_framebuffer_fetch)
+                header += "#extension GL_EXT_shader_framebuffer_fetch : require\n";
+        }
+
+        header += "precision highp float;\n";
+        header += "precision highp int;\n";
+        header += "precision highp sampler2D;\n";
+        if (GLAD_GL_ES_VERSION_3_1)
+            header += "precision highp sampler2DMS;\n";
+        if (GLAD_GL_ES_VERSION_3_2)
+            header += "precision highp usamplerBuffer;\n";
+
+        if (!GLAD_GL_EXT_blend_func_extended && !GLAD_GL_ARB_blend_func_extended)
+        {
+            if (!GLAD_GL_ARM_shader_framebuffer_fetch)
+                fprintf(stderr, "Dual source blending is not supported\n");
+
+            header += "#define DISABLE_DUAL_SOURCE\n";
+        }
+    }
+    else {
+        // Intel's GL driver doesn't like the readonly qualifier with 3.3 GLSL.
+        if (m_features.vs_expand && GLAD_GL_VERSION_4_3) {
+            header = "#version 430 core\n";
+        } else {
+            header = "#version 330 core\n";
+            header += "#extension GL_ARB_shading_language_420pack : require\n";
+            if (GLAD_GL_ARB_gpu_shader5)
+                header += "#extension GL_ARB_gpu_shader5 : require\n";
+            if (m_features.vs_expand)
+                header += "#extension GL_ARB_shader_storage_buffer_object: require\n";
+        }
+
+        if (GLAD_GL_ARB_shader_draw_parameters)
+            header += "#extension GL_ARB_shader_draw_parameters : require\n";
+        if (m_features.framebuffer_fetch && GLAD_GL_EXT_shader_framebuffer_fetch)
+            header += "#extension GL_EXT_shader_framebuffer_fetch : require\n";
+    }
 
 	if (m_features.framebuffer_fetch)
 		header += "#define HAS_FRAMEBUFFER_FETCH 1\n";
 	else
 		header += "#define HAS_FRAMEBUFFER_FETCH 0\n";
+
+    if (GLAD_GL_ARB_clip_control)
+        header += "#define HAS_CLIP_CONTROL 1\n";
+    else
+        header += "#define HAS_CLIP_CONTROL 0\n";
 
 	// Allow to puts several shader in 1 files
 	switch (type)

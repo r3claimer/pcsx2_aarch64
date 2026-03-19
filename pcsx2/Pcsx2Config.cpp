@@ -603,6 +603,8 @@ Pcsx2Config::CpuOptions::CpuOptions()
 	VU0FPCR = DEFAULT_VU_FP_CONTROL_REGISTER;
 	VU1FPCR = DEFAULT_VU_FP_CONTROL_REGISTER;
 	ExtraMemory = false;
+    ////
+    g_cpuRegistersPack.Cpu = *this;
 }
 
 void Pcsx2Config::CpuOptions::ApplySanityCheck()
@@ -698,6 +700,8 @@ Pcsx2Config::GSOptions::GSOptions()
 {
 	bitset = 0;
 
+    AspectRatio = AspectRatioType::R16_9;
+
 	PCRTCAntiBlur = true;
 	DisableInterlaceOffset = false;
 	PCRTCOffsets = false;
@@ -712,19 +716,19 @@ Pcsx2Config::GSOptions::GSOptions()
 	SkipDuplicateFrames = false;
 	OsdMessagesPos = OsdOverlayPos::TopLeft;
 	OsdPerformancePos = OsdOverlayPos::TopRight;
-	OsdShowSpeed = false;
-	OsdShowFPS = false;
-	OsdShowVPS = false;
-	OsdShowCPU = false;
-	OsdShowGPU = false;
-	OsdShowResolution = false;
+	OsdShowSpeed = true;
+	OsdShowFPS = true;
+	OsdShowVPS = true;
+	OsdShowCPU = true;
+	OsdShowGPU = true;
+	OsdShowResolution = true;
 	OsdShowGSStats = false;
 	OsdShowIndicators = true;
 	OsdShowSettings = false;
 	OsdShowInputs = false;
-	OsdShowFrameTimes = false;
-	OsdShowVersion = false;
-	OsdShowHardwareInfo = false;
+	OsdShowFrameTimes = true;
+	OsdShowVersion = true;
+	OsdShowHardwareInfo = true;
 	OsdShowVideoCapture = true;
 	OsdShowInputRec = true;
 

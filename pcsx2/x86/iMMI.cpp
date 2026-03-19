@@ -7,7 +7,9 @@
 #include "iMMI.h"
 #include "common/BitUtils.h"
 
+#if !defined(__ANDROID__)
 using namespace x86Emitter;
+#endif
 
 namespace Interp = R5900::Interpreter::OpcodeImpl::MMI;
 

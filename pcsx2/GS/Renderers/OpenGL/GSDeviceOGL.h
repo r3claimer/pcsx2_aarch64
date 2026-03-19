@@ -141,6 +141,7 @@ private:
 
 	std::unique_ptr<GLContext> m_gl_context;
 
+    bool m_is_gles = false;
 	bool m_disable_download_pbo = false;
 
 	GLuint m_fbo = 0; // frame buffer container
@@ -272,7 +273,7 @@ public:
 	__fi static GSDeviceOGL* GetInstance() { return static_cast<GSDeviceOGL*>(g_gs_device.get()); }
 
 	// Used by OpenGL, so the same calling convention is required.
-	static void GLAPIENTRY DebugMessageCallback(GLenum gl_source, GLenum gl_type, GLuint id, GLenum gl_severity, GLsizei gl_length, const GLchar* gl_message, const void* userParam);
+	static void APIENTRY DebugMessageCallback(GLenum gl_source, GLenum gl_type, GLuint id, GLenum gl_severity, GLsizei gl_length, const GLchar* gl_message, const void* userParam);
 
 	__fi bool IsDownloadPBODisabled() const { return m_disable_download_pbo; }
 	__fi u32 GetFBORead() const { return m_fbo_read; }

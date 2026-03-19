@@ -12,7 +12,9 @@
 #include "x86/iMMI.h"
 #include "x86/iR5900.h"
 
+#if !defined(__ANDROID__)
 using namespace x86Emitter;
+#endif
 
 ////////////////////
 // Code Templates //

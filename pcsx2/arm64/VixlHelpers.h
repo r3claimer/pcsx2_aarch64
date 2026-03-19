@@ -7,6 +7,7 @@
 #include "common/Pcsx2Defs.h"
 #include "common/HashCombine.h"
 #include "cpuRegistersPack.h"
+#include "common/Error.h"
 
 #include "vixl/aarch64/constants-aarch64.h"
 #include "vixl/aarch64/macro-assembler-aarch64.h"

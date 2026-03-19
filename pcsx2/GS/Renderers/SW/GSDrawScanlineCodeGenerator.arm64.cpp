@@ -5,6 +5,7 @@
 #include "GS/Renderers/SW/GSDrawScanline.h"
 #include "GS/Renderers/SW/GSVertexSW.h"
 #include "GS/GSState.h"
+#include "common/Error.h"
 
 #include "common/StringUtil.h"
 #include "common/Perf.h"

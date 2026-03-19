@@ -7,6 +7,7 @@
 #include "common/BitUtils.h"
 #include "common/Console.h"
 #include "common/HostSys.h"
+#include "common/Error.h"
 
 const a64::Register& armWRegister(int n)
 {
@@ -1015,7 +1016,8 @@ void armPMOVMSKB(const a64::Register& regDst, const a64::VRegister& regSrc)
 
 void armSHUFPS(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int pIndex)
 {
-    armAsm->Mov(RQSCRATCH3, armLoadPtrV(PTR_CPU(shuffle.data[pIndex][1])).Q());
+    const auto* ptr = &shuffle.data[pIndex][1];
+    armAsm->Mov(RQSCRATCH3, armLoadPtrV(ptr).Q());
     ////
     armAsm->Mov(RQSCRATCH2, srcreg);
     armAsm->Mov(RQSCRATCH, dstreg);
@@ -1024,7 +1026,8 @@ void armSHUFPS(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int p
 
 void armPSHUFD(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int pIndex)
 {
-    armAsm->Mov(RQSCRATCH3, armLoadPtrV(PTR_CPU(shuffle.data[pIndex][0])).Q());
+    const auto* ptr = &shuffle.data[pIndex][0];
+    armAsm->Mov(RQSCRATCH3, armLoadPtrV(ptr).Q());
     armAsm->Tbl(dstreg.V16B(), srcreg.V16B(), RQSCRATCH3.V16B());
 }
 

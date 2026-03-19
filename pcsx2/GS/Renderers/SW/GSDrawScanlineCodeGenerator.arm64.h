@@ -5,6 +5,7 @@
 
 #include "GS/Renderers/Common/GSFunctionMap.h"
 #include "GS/Renderers/SW/GSScanlineEnvironment.h"
+#include "common/Error.h"
 
 #include "vixl/aarch64/macro-assembler-aarch64.h"
 

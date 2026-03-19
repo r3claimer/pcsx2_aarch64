@@ -1021,51 +1021,59 @@ public:
 		return GSVector4i(vcgtq_s32(v4s, v.v4s));
 	}
 
+	// FIX: vcgeq_s8 returns uint8x16_t, must reinterpret via u8 before s8
 	__forceinline GSVector4i ge8(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s8(vcgeq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s8(vreinterpretq_s8_u8(vcgeq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s)))));
 	}
 
+	// FIX: vcgeq_s16 returns uint16x8_t, must reinterpret via u16 before s16
 	__forceinline GSVector4i ge16(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s16(vcgeq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s16(vreinterpretq_s16_u16(vcgeq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s)))));
 	}
 
+	// FIX: vcgeq_s32 returns uint32x4_t, must reinterpret to s32
 	__forceinline GSVector4i ge32(const GSVector4i& v) const
 	{
-		return GSVector4i(vcgeq_s32(v4s, v.v4s));
+		return GSVector4i(vreinterpretq_s32_u32(vcgeq_s32(v4s, v.v4s)));
 	}
 
+	// FIX: vcltq_s8 returns uint8x16_t, must reinterpret via u8 before s8
 	__forceinline GSVector4i lt8(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s8(vcltq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s8(vreinterpretq_s8_u8(vcltq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s)))));
 	}
 
+	// FIX: vcltq_s16 returns uint16x8_t, must reinterpret via u16 before s16
 	__forceinline GSVector4i lt16(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s16(vcltq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s16(vreinterpretq_s16_u16(vcltq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s)))));
 	}
 
+	// FIX: vcltq_s32 returns uint32x4_t, must reinterpret to s32
 	__forceinline GSVector4i lt32(const GSVector4i& v) const
 	{
-		return GSVector4i(vcltq_s32(v4s, v.v4s));
+		return GSVector4i(vreinterpretq_s32_u32(vcltq_s32(v4s, v.v4s)));
 	}
 
+	// FIX: vcleq_s8 returns uint8x16_t, must reinterpret via u8 before s8
 	__forceinline GSVector4i le8(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s8(vcleq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s8(vreinterpretq_s8_u8(vcleq_s8(vreinterpretq_s8_s32(v4s), vreinterpretq_s8_s32(v.v4s)))));
 	}
 
+	// FIX: vcleq_s16 returns uint16x8_t, must reinterpret via u16 before s16
 	__forceinline GSVector4i le16(const GSVector4i& v) const
 	{
-		return GSVector4i(vreinterpretq_s32_s16(vcleq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s))));
+		return GSVector4i(vreinterpretq_s32_s16(vreinterpretq_s16_u16(vcleq_s16(vreinterpretq_s16_s32(v4s), vreinterpretq_s16_s32(v.v4s)))));
 	}
 
+	// FIX: vcleq_s32 returns uint32x4_t, must reinterpret to s32
 	__forceinline GSVector4i le32(const GSVector4i& v) const
 	{
-		return GSVector4i(vcleq_s32(v4s, v.v4s));
+		return GSVector4i(vreinterpretq_s32_u32(vcleq_s32(v4s, v.v4s)));
 	}
-
 
 	__forceinline GSVector4i andnot(const GSVector4i& v) const
 	{
@@ -1964,11 +1972,6 @@ public:
 
 	#define VECTOR4i_SHUFFLE_4(xs, xn, ys, yn, zs, zn, ws, wn) \
 		__forceinline GSVector4i xs##ys##zs##ws() const { return GSVector4i(__builtin_shufflevector(v4s, v4s, xn, yn, zn, wn)); }
-
-		// __forceinline GSVector4i xs##ys##zs##ws() const {return GSVector4i(_mm_shuffle_epi32(m, _MM_SHUFFLE(wn, zn, yn, xn)));}
-		// __forceinline GSVector4i xs##ys##zs##ws##l() const {return GSVector4i(_mm_shufflelo_epi16(m, _MM_SHUFFLE(wn, zn, yn, xn)));}
-		// __forceinline GSVector4i xs##ys##zs##ws##h() const {return GSVector4i(_mm_shufflehi_epi16(m, _MM_SHUFFLE(wn, zn, yn, xn)));}
-		// __forceinline GSVector4i xs##ys##zs##ws##lh() const {return GSVector4i(_mm_shufflehi_epi16(_mm_shufflelo_epi16(m, _MM_SHUFFLE(wn, zn, yn, xn)), _MM_SHUFFLE(wn, zn, yn, xn)));}
 
 	#define VECTOR4i_SHUFFLE_3(xs, xn, ys, yn, zs, zn) \
 		VECTOR4i_SHUFFLE_4(xs, xn, ys, yn, zs, zn, x, 0) \

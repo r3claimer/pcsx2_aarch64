@@ -5,6 +5,7 @@
 
 #include "common/Pcsx2Defs.h"
 #include "common/WindowInfo.h"
+#include "common/Error.h"
 
 #include <array>
 #include <memory>

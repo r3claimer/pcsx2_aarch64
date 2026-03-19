@@ -1134,6 +1134,7 @@ if(BSD)
 endif()
 
 find_package(SDL3 REQUIRED)
+find_package(LZ4 REQUIRED)
 
 target_link_libraries(PCSX2_FLAGS INTERFACE
 	common

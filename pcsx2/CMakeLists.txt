@@ -1133,6 +1133,8 @@ if(BSD)
 		${pcsx2LinuxHeaders})
 endif()
 
+find_package(SDL3 REQUIRED)
+
 target_link_libraries(PCSX2_FLAGS INTERFACE
 	common
 	imgui

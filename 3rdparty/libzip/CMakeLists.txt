@@ -271,7 +271,14 @@ else(WIN32)
 endif(WIN32)
 
 target_sources(zip PRIVATE lib/zip_algorithm_zstd.c)
-target_link_libraries(zip PRIVATE Zstd::Zstd)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZSTD REQUIRED IMPORTED_TARGET libzstd)
+
+target_link_libraries(zip PRIVATE
+    PkgConfig::ZSTD
+)
+
 
 target_link_libraries(zip PRIVATE ZLIB::ZLIB)
 target_include_directories(zip

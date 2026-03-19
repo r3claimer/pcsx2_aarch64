@@ -18,9 +18,19 @@ add_library(imgui
 
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(imgui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(imgui PUBLIC plutosvg::plutosvg)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
 
 target_link_libraries(imgui PUBLIC PkgConfig::FREETYPE)
+
+find_library(PLUTOSVG_LIB plutosvg REQUIRED)
+find_path(PLUTOSVG_INCLUDE_DIR plutosvg.h)
+
+if(NOT TARGET plutosvg::plutosvg)
+    add_library(plutosvg::plutosvg UNKNOWN IMPORTED)
+    set_target_properties(plutosvg::plutosvg PROPERTIES
+        IMPORTED_LOCATION "${PLUTOSVG_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${PLUTOSVG_INCLUDE_DIR}"
+    )
+endif()

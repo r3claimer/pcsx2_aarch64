@@ -15,15 +15,13 @@ option(PACKAGE_MODE "Use this option to ease packaging of PCSX2 (developer/distr
 #-------------------------------------------------------------------------------
 # Graphical option
 #-------------------------------------------------------------------------------
-if(NOT APPLE)
-	option(USE_OPENGL "Enable OpenGL GS renderer" ON)
-endif()
+option(USE_OPENGL "Enable OpenGL GS renderer" ON)
 option(USE_VULKAN "Enable Vulkan GS renderer" ON)
 
 #-------------------------------------------------------------------------------
 # Path and lib option
 #-------------------------------------------------------------------------------
-if(UNIX AND NOT APPLE)
+if(UNIX)
 	option(ENABLE_SETCAP "Enable networking capability for DEV9" OFF)
 	option(X11_API "Enable X11 support" OFF)
 	option(WAYLAND_API "Enable Wayland support" OFF)
@@ -32,11 +30,6 @@ endif()
 
 if(UNIX)
 	option(USE_LINKED_FFMPEG "Links with ffmpeg instead of using dynamic loading" OFF)
-endif()
-
-if(APPLE)
-	option(OSX_USE_DEFAULT_SEARCH_PATH "Don't prioritize system library paths" OFF)
-	option(SKIP_POSTPROCESS_BUNDLE "Skip postprocessing bundle for redistributability" OFF)
 endif()
 
 #-------------------------------------------------------------------------------
@@ -105,18 +98,14 @@ if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_HOST_SYSTEM_PR
 		if (DISABLE_ADVANCE_SIMD)
 			add_compile_options("-msse" "-msse2" "-msse4.1" "-mfxsr")
 		else()
-			# Can't use march=native on Apple Silicon.
-			if(NOT APPLE OR "${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 				add_compile_options("-march=native")
-			endif()
 		endif()
 	endif()
 elseif("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64" OR "${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "aarch64" OR
        "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
-	message(STATUS "Building for Apple Silicon (ARM64).")
+	message(STATUS "Building for aarch64 (ARM64).")
 	list(APPEND PCSX2_DEFS _M_ARM64=1)
 	set(_M_ARM64 TRUE)
-#	add_compile_options("-march=armv8.4-a" "-mcpu=apple-m1")
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	add_definitions("-march=armv8-a+crc")
@@ -288,9 +277,6 @@ endif()
 
 # CMake defaults the suffix for modules to .so on macOS but wx tells us that the
 # extension is .dylib (so that's what we search for)
-if(APPLE)
-	set(CMAKE_SHARED_MODULE_SUFFIX ".dylib")
-endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 	if(NOT OSX_USE_DEFAULT_SEARCH_PATH)

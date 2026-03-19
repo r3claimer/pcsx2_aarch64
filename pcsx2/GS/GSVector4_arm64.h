@@ -701,19 +701,20 @@ public:
 		return GSVector4(vreinterpretq_f32_u32(vcleq_f32(v1.v4s, v2.v4s)));
 	}
 
+	// FIX: wrap f64 results in vreinterpretq_f32_f64() before passing to GSVector4()
 	__forceinline GSVector4 mul64(const GSVector4& v) const
 	{
-		return GSVector4(vmulq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s)));
+		return GSVector4(vreinterpretq_f32_f64(vmulq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s))));
 	}
 
 	__forceinline GSVector4 add64(const GSVector4& v) const
 	{
-		return GSVector4(vaddq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s)));
+		return GSVector4(vreinterpretq_f32_f64(vaddq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s))));
 	}
 
 	__forceinline GSVector4 sub64(const GSVector4& v) const
 	{
-		return GSVector4(vsubq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s)));
+		return GSVector4(vreinterpretq_f32_f64(vsubq_f64(vreinterpretq_f64_f32(v4s), vreinterpretq_f64_f32(v.v4s))));
 	}
 
 	__forceinline static GSVector4 f32to64(const GSVector4& v)
@@ -726,6 +727,7 @@ public:
 		return GSVector4(vreinterpretq_f32_f64(vcvt_f64_f32(vld1_f32(static_cast<const float*>(p)))));
 	}
 
+	// FIX: cast v4s to f64 before ternary, and use vreinterpretq_f32_f64 for broadcast64
 	__forceinline GSVector4i f64toi32(bool truncate = true) const
 	{
 		const float64x2_t r = truncate ? vreinterpretq_f64_f32(v4s) : vrndiq_f64(vreinterpretq_f64_f32(v4s));
@@ -780,6 +782,7 @@ public:
 		return GSVector4(vld1q_dup_f32((const float*)f));
 	}
 
+	// FIX: use vreinterpretq_f32_f64 (not vreinterpretq_f64_f32) to convert result back to float32x4_t
 	__forceinline static GSVector4 broadcast64(const void* f)
 	{
 		return GSVector4(vreinterpretq_f32_f64(vld1q_dup_f64((const double*)f)));

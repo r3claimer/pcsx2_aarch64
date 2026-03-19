@@ -474,9 +474,9 @@ set(pcsx2GSSourcesUnshared
 	GS/GSXXH.cpp
 	GS/Renderers/Common/GSVertexTraceFMM.cpp
 	GS/Renderers/HW/GSRendererHWMultiISA.cpp
-	GS/Renderers/SW/GSDrawScanline.cpp
-	GS/Renderers/SW/GSRasterizer.cpp
-	GS/Renderers/SW/GSRendererSW.cpp
+	###GS/Renderers/SW/GSDrawScanline.cpp
+	###GS/Renderers/SW/GSRasterizer.cpp
+	###GS/Renderers/SW/GSRendererSW.cpp
 )
 
 if(_M_X86)
@@ -484,11 +484,11 @@ if(_M_X86)
 		GS/Renderers/SW/GSDrawScanlineCodeGenerator.all.cpp
 		GS/Renderers/SW/GSSetupPrimCodeGenerator.all.cpp
 	)
-elseif(_M_ARM64)
-	list(APPEND pcsx2GSSourcesUnshared
-		GS/Renderers/SW/GSDrawScanlineCodeGenerator.arm64.cpp
-		GS/Renderers/SW/GSSetupPrimCodeGenerator.arm64.cpp
-	)
+#elseif(_M_ARM64)
+#	list(APPEND pcsx2GSSourcesUnshared
+#		GS/Renderers/SW/GSDrawScanlineCodeGenerator.arm64.cpp
+#		GS/Renderers/SW/GSSetupPrimCodeGenerator.arm64.cpp
+#	)
 endif()
 
 set(pcsx2GSSources

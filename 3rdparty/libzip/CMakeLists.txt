@@ -271,7 +271,7 @@ else(WIN32)
 endif(WIN32)
 
 target_sources(zip PRIVATE lib/zip_algorithm_zstd.c)
-target_link_libraries(zip PRIVATE Zstd::Zstd)
+target_link_libraries(zip PRIVATE zstd::zstd)
 
 target_link_libraries(zip PRIVATE ZLIB::ZLIB)
 target_include_directories(zip

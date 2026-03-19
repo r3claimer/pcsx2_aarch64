@@ -235,7 +235,7 @@ endif()
 if (MSVC)
 	set(DEFAULT_WARNINGS)
 else()
-	set(DEFAULT_WARNINGS -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-field-initializers)
+        set(DEFAULT_WARNINGS -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-field-initializers -Wno-deprecated-enum-enum-conversion)
 endif()
 
 if (USE_PGO_GENERATE OR USE_PGO_OPTIMIZE)

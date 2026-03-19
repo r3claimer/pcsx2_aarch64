@@ -1135,7 +1135,9 @@ endif()
 
 find_package(SDL3 REQUIRED)
 find_package(LZ4 REQUIRED)
-find_package(ZSTD REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZSTD REQUIRED IMPORTED_TARGET libzstd)
 
 target_link_libraries(PCSX2_FLAGS INTERFACE
 	common
@@ -1156,7 +1158,7 @@ target_link_libraries(PCSX2_FLAGS INTERFACE
 	SoundTouch::SoundTouch
 #	PNG::PNG
 	LZMA::LZMA
-	Zstd::Zstd
+	PkgConfig::ZSTD
 	demanglegnu
 	ccc
 #	plutovg::plutovg
